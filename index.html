@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>青耳纪元：逆世归墟者</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0a0a0f;
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+      user-select: none;
+      touch-action: none;
+    }
+    #game-container {
+      width: 100%; height: 100%;
+      position: relative;
+      display: none;
+    }
+    #game-canvas {
+      display: block;
+      width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+
+    /* ===== 开始界面 ===== */
+    #start-screen {
+      position: fixed; inset: 0;
+      background: linear-gradient(180deg, #0a1628 0%, #1a3050 50%, #2a5070 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .start-bg-decor {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(100,150,200,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(200,150,100,0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .game-title {
+      font-size: clamp(36px, 8vw, 72px);
+      color: #e8d8a8;
+      text-shadow: 0 0 20px rgba(232,216,168,0.5), 2px 4px 8px rgba(0,0,0,0.8);
+      letter-spacing: 8px;
+      margin-bottom: 8px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1;
+    }
+    .game-subtitle {
+      font-size: clamp(16px, 3vw, 24px);
+      color: #aabbcc;
+      letter-spacing: 4px;
+      margin-bottom: 50px;
+      text-align: center;
+      z-index: 1;
+    }
+    .mode-select {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      z-index: 1;
+    }
+    .mode-btn {
+      width: 160px;
+      padding: 20px 10px;
+      background: rgba(40,60,90,0.7);
+      border: 2px solid rgba(150,180,220,0.4);
+      border-radius: 12px;
+      color: #c8d8e8;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      backdrop-filter: blur(4px);
+      z-index: 1;
+    }
+    .mode-btn:hover {
+      background: rgba(60,90,130,0.85);
+      border-color: rgba(200,220,255,0.7);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .mode-btn .mode-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .mode-btn .mode-name {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .mode-btn .mode-desc {
+      font-size: 12px;
+      color: #8899aa;
+      line-height: 1.5;
+    }
+    .start-hint {
+      margin-top: 40px;
+      color: #667788;
+      font-size: 14px;
+      text-align: center;
+      z-index: 1;
+      line-height: 1.8;
+    }
+
+    /* ===== HUD ===== */
+    #hud {
+      position: absolute;
+      bottom: 20px; left: 20px;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .status-bar {
+      width: 220px;
+      height: 22px;
+      background: rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 11px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      position: relative;
+    }
+    .status-fill {
+      height: 100%;
+      transition: width 0.2s;
+      border-radius: 9px;
+    }
+    .health-fill {
+      background: linear-gradient(90deg, #cc2222, #ff4444);
+    }
+    .stamina-fill {
+      background: linear-gradient(90deg, #228822, #44cc44);
+    }
+    .status-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      font-weight: bold;
+    }
+    #materials {
+      margin-top: 8px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .mat-item {
+      color: #d0d0d0;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mat-icon {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+      box-shadow: 0 0 4px rgba(255,255,255,0.3);
+    }
+
+    /* ===== 区域名 ===== */
+    #biome-display {
+      position: absolute;
+      bottom: 20px; right: 20px;
+      z-index: 100;
+      pointer-events: none;
+      text-align: right;
+    }
+    #biome-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+    #biome-name {
+      color: #fff;
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+      letter-spacing: 4px;
+    }
+
+    /* ===== 小地图 ===== */
+    #minimap-container {
+      position: absolute;
+      top: 20px; right: 20px;
+      z-index: 100;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.3s;
+    }
+    #minimap {
+      border: 3px solid rgba(255,255,255,0.4);
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: block;
+      transition: all 0.3s;
+      background: #3a5a2a;
+    }
+    .minimap-label {
+      text-align: center;
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      margin-top: 4px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+    #bigmap-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 900;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #bigmap-canvas {
+      border: 4px solid rgba(255,255,255,0.5);
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      max-width: 90vw;
+      max-height: 90vh;
+      background: #3a5a2a;
+    }
+    #bigmap-hint {
+      position: absolute;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+    }
+
+    /* ===== 对话框 ===== */
+    #dialog-box {
+      position: absolute;
+      bottom: 100px; left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 700px;
+      background: rgba(10,15,25,0.92);
+      border: 2px solid rgba(150,180,220,0.5);
+      border-radius: 12px;
+      padding: 20px 30px;
+      z-index: 500;
+      display: none;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      pointer-events: auto;
+    }
+    #dialog-name {
+      color: #e8d8a8;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(150,180,220,0.3);
+      padding-bottom: 8px;
+    }
+    #dialog-text {
+      color: #d0d8e0;
+      font-size: 16px;
+      line-height: 1.8;
+      min-height: 60px;
+    }
+    #dialog-hint {
+      text-align: right;
+      color: #667788;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    /* ===== 互动提示 ===== */
+    #interact-prompt {
+      position: absolute;
+      bottom: 35%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 200;
+      display: none;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    #interact-prompt .key {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+      font-weight: bold;
+    }
+
+    /* ===== 锻造面板 ===== */
+    #forge-panel {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%; max-width: 500px;
+      background: rgba(10,15,25,0.95);
+      border: 2px solid rgba(200,160,80,0.5);
+      border-radius: 12px;
+      padding: 30px;
+      z-index: 600;
+      display: none;
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+    }
+    #forge-panel h2 {
+      color: #e8d8a8;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+      letter-spacing: 4px;
+    }
+    .forge-item {
+      background: rgba(40,50,70,0.6);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+    }
+    .forge-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .forge-item-name {
+      color: #d0d8e0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .forge-item-level {
+      color: #ffcc44;
+      font-size: 14px;
+    }
+    .forge-item-cost {
+      color: #8899aa;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .forge-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(180deg, #c89830, #8a6818);
+      border: 1px solid #e8c060;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .forge-btn:hover:not(:disabled) {
+      background: linear-gradient(180deg, #d8a840, #9a7828);
+    }
+    .forge-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    #forge-close {
+      position: absolute;
+      top: 12px; right: 16px;
+      color: #8899aa;
+      font-size: 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    #forge-close:hover { color: #fff; }
+
+    /* ===== 屏幕受击效果 ===== */
+    #damage-vignette {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 99;
+      box-shadow: inset 0 0 100px 30px rgba(255, 0, 0, 0);
+      transition: box-shadow 0.1s;
+    }
+
+    /* ===== 敌人血条 ===== */
+    .enemy-hp-bar {
+      position: absolute;
+      pointer-events: none;
+      z-index: 90;
+      transform: translate(-50%, -100%);
+      display: none;
+    }
+    .enemy-hp-bar .hp-bg {
+      width: 80px; height: 6px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .enemy-hp-bar .hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #cc2222, #ff4444);
+      transition: width 0.1s;
+    }
+    .enemy-hp-bar .hp-name {
+      text-align: center;
+      color: #fff;
+      font-size: 11px;
+      text-shadow: 1px 1px 2px #000;
+      margin-bottom: 2px;
+    }
+
+    /* ===== 加载提示 ===== */
+    #loading {
+      position: fixed; inset: 0;
+      background: #0a0a0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 3000;
+      color: #8899aa;
+    }
+    #loading .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #c8d8e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    #loading .load-text {
+      margin-bottom: 8px;
+    }
+    #loading .load-sub {
+      font-size: 12px;
+      color: #556677;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== 移动端控制 ===== */
+    #mobile-controls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 150;
+      display: none;
+    }
+    #joystick-area {
+      position: absolute;
+      bottom: 40px; left: 40px;
+      width: 140px; height: 140px;
+      pointer-events: auto;
+      z-index: 1;
+    }
+    #joystick-base {
+      width: 120px; height: 120px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      position: absolute;
+      top: 10px; left: 10px;
+    }
+    #joystick-stick {
+      width: 50px; height: 50px;
+      background: rgba(255,255,255,0.4);
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 50%;
+      position: absolute;
+      top: 45px; left: 45px;
+      transition: none;
+    }
+    .mobile-buttons {
+      position: absolute;
+      bottom: 50px; right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: auto;
+      align-items: flex-end;
+      z-index: 1;
+    }
+    .mobile-btn {
+      width: 65px; height: 65px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-btn:active {
+      background: rgba(255,255,255,0.4);
+      transform: scale(0.95);
+    }
+    .mobile-btn.attack {
+      background: rgba(200,50,50,0.5);
+      border-color: rgba(255,100,100,0.6);
+      width: 75px; height: 75px;
+      font-size: 16px;
+    }
+    .mobile-cam-area {
+      position: absolute;
+      top: 0; right: 0;
+      width: 60%; height: 70%;
+      pointer-events: auto;
+      z-index: 0;
+    }
+    #cam-toggle-btn {
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 14px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 12px;
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 160;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== 顶部工具按钮（PC） ===== */
+    #top-buttons {
+      position: absolute;
+      top: 20px; left: 20px;
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+    }
+    .top-btn {
+      padding: 6px 14px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(4px);
+    }
+    .top-btn:hover {
+      background: rgba(0,0,0,0.7);
+      border-color: rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<!-- 加载画面 -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-text">正在构建青耳世界...</div>
+  <div class="load-sub" id="load-sub">初始化引擎</div>
+</div>
+
+<!-- 开始界面 -->
+<div id="start-screen">
+  <div class="start-bg-decor"></div>
+  <div class="game-title">青耳纪元</div>
+  <div class="game-subtitle">逆 世 归 墟 者</div>
+  <div class="mode-select">
+    <div class="mode-btn" id="btn-mode-pc">
+      <span class="mode-icon">⌨️</span>
+      <div class="mode-name">电脑模式</div>
+      <div class="mode-desc">WASD 移动<br>鼠标视角</div>
+    </div>
+    <div class="mode-btn" id="btn-mode-mobile">
+      <span class="mode-icon">📱</span>
+      <div class="mode-name">手机模式</div>
+      <div class="mode-desc">虚拟摇杆<br>触控视角</div>
+    </div>
+    <div class="mode-btn" id="btn-mode-gamepad">
+      <span class="mode-icon">🎮</span>
+      <div class="mode-name">手柄模式</div>
+      <div class="mode-desc">摇杆移动<br>右摇杆视角</div>
+    </div>
+  </div>
+  <div class="start-hint">
+    从繁华都市穿越到异世界青耳，斩妖除魔，锻造神兵，探索五域<br>
+    按 V 切换视角 · 鼠标左键/空格 攻击 · E 互动 · F 跳跃
+  </div>
+</div>
+
+<!-- 游戏容器 -->
+<div id="game-container">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- 受击效果 -->
+  <div id="damage-vignette"></div>
+
+  <!-- 顶部工具按钮 -->
+  <div id="top-buttons">
+    <button class="top-btn" id="btn-cam-toggle">切换视角 (V)</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="status-bar">
+      <div class="status-fill health-fill" style="width:100%"></div>
+      <div class="status-text health-text">100 / 100</div>
+    </div>
+    <div class="status-bar">
+      <div class="status-fill stamina-fill" style="width:100%"></div>
+      <div class="status-text stamina-text">100 / 100</div>
+    </div>
+    <div id="materials"></div>
+  </div>
+
+  <!-- 区域名 -->
+  <div id="biome-display">
+    <div id="biome-label">当前所在</div>
+    <div id="biome-name">青耳原野</div>
+  </div>
+
+  <!-- 小地图 -->
+  <div id="minimap-container">
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div class="minimap-label">点击展开大地图</div>
+  </div>
+
+  <!-- 全屏大地图 -->
+  <div id="bigmap-overlay">
+    <canvas id="bigmap-canvas" width="700" height="700"></canvas>
+    <div id="bigmap-hint">点击任意处关闭</div>
+  </div>
+
+  <!-- 对话框 -->
+  <div id="dialog-box">
+    <div id="dialog-name">NPC</div>
+    <div id="dialog-text"></div>
+    <div id="dialog-hint">点击继续 ▼</div>
+  </div>
+
+  <!-- 互动提示 -->
+  <div id="interact-prompt">
+    <span class="key">E</span><span id="interact-text">互动</span>
+  </div>
+
+  <!-- 锻造面板 -->
+  <div id="forge-panel">
+    <button id="forge-close">✕</button>
+    <h2>⚒ 锻 造 炉 ⚒</h2>
+    <div class="forge-item">
+      <div class="forge-item-header">
+        <span class="forge-item-name">⚔ 青耳剑</span>
+        <span class="forge-item-level" id="weapon-level">Lv.1</span>
+      </div>
+      <div class="forge-item-cost" id="weapon-upgrade-cost"></div>
+      <button class="forge-btn" id="btn-upgrade-weapon">升级武器</button>
+    </div>
+    <div class="forge-item">
+      <div class="forge-item-header">
+        <span class="forge-item-name">🛡 劲装护甲</span>
+        <span class="forge-item-level" id="armor-level">Lv.1</span>
+      </div>
+      <div class="forge-item-cost" id="armor-upgrade-cost"></div>
+      <button class="forge-btn" id="btn-upgrade-armor">升级护甲</button>
+    </div>
+  </div>
+
+  <!-- 敌人血条（模板，运行时复制） -->
+  <div class="enemy-hp-bar" id="enemy-hp-template" style="display:none;">
+    <div class="hp-name">敌人</div>
+    <div class="hp-bg">
+      <div class="hp-fill" style="width:100%"></div>
+    </div>
+  </div>
+
+  <!-- 移动端控制 -->
+  <div id="mobile-controls">
+    <div class="mobile-cam-area" id="mobile-cam-area"></div>
+    <div id="cam-toggle-btn">切换视角</div>
+    <div id="joystick-area">
+      <div id="joystick-base"></div>
+      <div id="joystick-stick"></div>
+    </div>
+    <div class="mobile-buttons">
+      <div class="mobile-btn attack" id="btn-attack">攻击</div>
+      <div style="display:flex; gap:10px;">
+        <div class="mobile-btn" id="btn-interact">互动</div>
+        <div class="mobile-btn" id="btn-jump">跳跃</div>
+      </div>
+      <div class="mobile-btn" id="btn-sprint" style="width:55px;height:55px;font-size:12px;">冲刺</div>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js 从CDN加载稳定版 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/collision.js"></script>
+<script src="js/objects.js"></script>
+<script src="js/player.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/minimap.js"></script>
+
+<script>
+// ==================== 游戏主入口 ====================
+const Game = (() => {
+  let scene, camera, renderer, clock;
+  let terrainMesh, waterMesh, mountainsGroup;
+  let playerMesh;
+  let textures;
+  let animFrameId;
+  let isPaused = true;
+  let gameStarted = false;
+
+  const enemyHpBars = new Map();
+
+  function init() {
+    try {
+      // ===== 1. 渲染器 =====
+      const canvas = document.getElementById('game-canvas');
+      const testGL = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!testGL) {
+        showWebGLError();
+        return;
+      }
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+
+      // ===== 2. 场景 + 雾 =====
+      scene = new THREE.Scene();
+
+      // 天空：用水平渐变的 canvas 作为背景贴图
+      scene.background = createSkyTexture();
+      scene.fog = new THREE.FogExp2(0xb8d4ec, 0.0012);
+
+      // 添加远处云朵
+      const cloudsGroup = createClouds();
+      scene.add(cloudsGroup);
+
+      // ===== 3. 相机 =====
+      camera = new THREE.PerspectiveCamera(
+        65, window.innerWidth / window.innerHeight, 0.5, 3000
+      );
+      camera.position.set(80, 60, 80);
+      camera.lookAt(0, 10, 0);
+
+      clock = new THREE.Clock();
+
+      // ===== 4. 生成程序化纹理（同步，立即可用） =====
+      textures = TextureGen.getAll();
+
+      // ===== 5. 光照 =====
+      setupLights();
+
+      // ===== 6. 地形 =====
+      terrainMesh = Terrain.createTerrain(textures);
+      scene.add(terrainMesh);
+
+      // ===== 7. 水面 =====
+      waterMesh = Terrain.createWater();
+      scene.add(waterMesh);
+
+      // ===== 8. 远山 =====
+      mountainsGroup = Terrain.createMountains(textures);
+      scene.add(mountainsGroup);
+
+      // ===== 9. 玩家 =====
+      playerMesh = WorldObjects.createPlayer(textures);
+      scene.add(playerMesh);
+      PlayerController.init(playerMesh, camera, scene, terrainMesh);
+      // 初始位置：村庄上空
+      playerMesh.position.set(0, Terrain.getHeight(0, 0) + 2, 0);
+
+      // ===== 10. NPC（自动创建村庄所有NPC）=====
+      NPCSystem.init(scene, playerMesh, textures);
+
+      // ===== 11. 敌人 =====
+      EnemyAI.init(scene, playerMesh);
+      EnemyAI.spawnAllEnemies();
+
+      // ===== 12. 场景装饰（树、房屋、村庄） =====
+      populateWorld();
+
+      // ===== 13. UI =====
+      UISystem.init();
+
+      // ===== 14. 小地图 =====
+      Minimap.init(playerMesh, scene, {
+        terrainMesh,
+        waterMesh,
+      });
+
+      // ===== 15. 事件监听 =====
+      setupEventListeners();
+
+      // ===== 16. 移动端控制 =====
+      setupMobileControls();
+
+      // 隐藏加载画面
+      document.getElementById('loading').style.display = 'none';
+
+      // 开始界面相机：对准村庄
+      camera.position.set(50, 40, 50);
+      camera.lookAt(0, 10, 0);
+
+      // 开始渲染循环（暂停状态，只渲染开始界面背景）
+      animate();
+
+      // 异步加载CDN高质量纹理，加载后替换
+      setTimeout(() => {
+        TextureGen.loadCDNTextures(textures, (progress) => {
+          // 更新地形材质中的纹理引用
+          if (terrainMesh && terrainMesh.userData.material && terrainMesh.userData.material.userData.shader) {
+            const sh = terrainMesh.userData.material.userData.shader;
+            sh.uniforms.uGrass.value = textures.grass;
+            sh.uniforms.uRock.value = textures.rock;
+            sh.uniforms.uSnow.value = textures.snow;
+            sh.uniforms.uSand.value = textures.sand;
+            terrainMesh.userData.material.needsUpdate = true;
+          }
+          // 标记所有材质需要更新（确保替换生效）
+          scene.traverse((obj) => {
+            if (obj.isMesh && obj.material) {
+              if (Array.isArray(obj.material)) {
+                obj.material.forEach(m => m.needsUpdate = true);
+              } else {
+                obj.material.needsUpdate = true;
+              }
+            }
+          });
+        });
+      }, 100);
+
+    } catch (e) {
+      console.error('游戏初始化失败:', e);
+      document.getElementById('loading').innerHTML = `
+        <div style="text-align:center; max-width:400px; padding:20px;">
+          <div style="font-size:48px; margin-bottom:16px;">⚠️</div>
+          <div style="color:#e8d8a8; font-size:20px; margin-bottom:12px;">游戏启动失败</div>
+          <div style="color:#8899aa; font-size:14px; line-height:1.8;">
+            ${e.message || e}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // 生成天空渐变纹理（地平线附近暖，顶部蓝，带太阳辉光）
+  function createSkyTexture() {
+    const c = document.createElement('canvas');
+    c.width = 8;
+    c.height = 256;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, c.height);
+    grad.addColorStop(0.0, '#3a78b8');
+    grad.addColorStop(0.4, '#7ab0d8');
+    grad.addColorStop(0.75, '#a8c8e0');
+    grad.addColorStop(0.92, '#d4e0e8');
+    grad.addColorStop(1.0, '#e8dcc8');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, c.width, c.height);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  function createClouds() {
+    const group = new THREE.Group();
+    group.userData.type = 'clouds';
+
+    function makeCloudTexture() {
+      const sz = 256;
+      const c = document.createElement('canvas');
+      c.width = c.height = sz;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, sz, sz);
+
+      for (let i = 0; i < 25; i++) {
+        const cx = Math.random() * sz;
+        const cy = Math.random() * sz;
+        const r = 20 + Math.random() * 60;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        const alpha = 0.4 + Math.random() * 0.4;
+        grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+        grad.addColorStop(0.7, `rgba(255, 255, 255, ${alpha * 0.5})`);
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const cloudTex = makeCloudTexture();
+    const cloudMat = new THREE.MeshBasicMaterial({
+      map: cloudTex,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.85,
+      color: 0xfff8f0,
+    });
+
+    const cloudCount = 20;
+    const ringR = 600;
+    for (let i = 0; i < cloudCount; i++) {
+      const angle = (i / cloudCount) * Math.PI * 2 + Math.random() * 0.3;
+      const dist = ringR + Math.random() * 300;
+      const cx = Math.cos(angle) * dist;
+      const cz = Math.sin(angle) * dist;
+      const cy = 120 + Math.random() * 60;
+
+      const scale = 80 + Math.random() * 120;
+      const geo = new THREE.PlaneGeometry(scale, scale * 0.5);
+      geo.rotateX(-Math.PI / 2);
+      const cloud = new THREE.Mesh(geo, cloudMat.clone());
+      cloud.position.set(cx, cy, cz);
+      cloud.rotation.y = -angle + Math.random() * 0.5;
+      cloud.material.opacity = 0.6 + Math.random() * 0.3;
+      group.add(cloud);
+
+      cloud.userData.driftSpeed = 0.3 + Math.random() * 0.5;
+      cloud.userData.angle = angle;
+      cloud.userData.distance = dist;
+    }
+
+    group.userData.update = (dt) => {
+      group.children.forEach((cloud) => {
+        if (!cloud.userData.driftSpeed) return;
+        cloud.userData.angle += cloud.userData.driftSpeed * dt * 0.003;
+        const a = cloud.userData.angle;
+        cloud.position.x = Math.cos(a) * cloud.userData.distance;
+        cloud.position.z = Math.sin(a) * cloud.userData.distance;
+      });
+    };
+
+    return group;
+  }
+
+  function showWebGLError() {
+    document.getElementById('loading').innerHTML = `
+      <div style="text-align:center; max-width:400px; padding:20px;">
+        <div style="font-size:48px; margin-bottom:16px;">⚠️</div>
+        <div style="color:#e8d8a8; font-size:20px; margin-bottom:12px;">WebGL 不可用</div>
+        <div style="color:#8899aa; font-size:14px; line-height:1.8;">
+          当前环境不支持 WebGL 图形加速。<br>
+          请使用支持 WebGL 的现代浏览器（Chrome / Firefox / Edge / Safari）打开此游戏。
+        </div>
+      </div>
+    `;
+  }
+
+  function setupLights() {
+    const ambient = new THREE.AmbientLight(0xaabccc, 0.45);
+    scene.add(ambient);
+
+    const hemi = new THREE.HemisphereLight(0x8fb8dd, 0x6a8040, 0.5);
+    scene.add(hemi);
+
+    const sun = new THREE.DirectionalLight(0xffe8c0, 1.3);
+    sun.position.set(250, 350, 180);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 900;
+    sun.shadow.camera.left = -500;
+    sun.shadow.camera.right = 500;
+    sun.shadow.camera.top = 500;
+    sun.shadow.camera.bottom = -500;
+    sun.shadow.bias = -0.0005;
+    sun.shadow.normalBias = 0.02;
+    sun.shadow.radius = 4;
+    scene.add(sun);
+
+    const fill = new THREE.DirectionalLight(0xaac0d8, 0.3);
+    fill.position.set(-150, 100, -100);
+    scene.add(fill);
+  }
+
+  function populateWorld() {
+    const W = Terrain.WORLD_SIZE;
+    const half = W / 2;
+
+    // ===== 青耳村（中心）=====
+    const elderSpot = Terrain.findBuildingSpot(0, 25, 10);
+    const elderHouse = WorldObjects.createHouse(textures, { w: 14, h: 8, d: 12, type: 'elder' });
+    elderHouse.position.set(elderSpot.x, elderSpot.y, elderSpot.z);
+    elderHouse.rotation.y = Math.PI;
+    elderHouse.userData.buildingType = 'elder';
+    scene.add(elderHouse);
+
+    const smithySpot = Terrain.findBuildingSpot(-35, 10, 10);
+    const smithy = WorldObjects.createHouse(textures, { w: 11, h: 6, d: 10, type: 'smithy' });
+    smithy.position.set(smithySpot.x, smithySpot.y, smithySpot.z);
+    smithy.rotation.y = Math.PI / 2;
+    scene.add(smithy);
+
+    const healerSpot = Terrain.findBuildingSpot(25, -18, 10);
+    const healerHut = WorldObjects.createHouse(textures, { w: 9, h: 5.5, d: 8, type: 'healer' });
+    healerHut.position.set(healerSpot.x, healerSpot.y, healerSpot.z);
+    healerHut.rotation.y = -Math.PI / 2;
+    scene.add(healerHut);
+
+    const shopSpot = Terrain.findBuildingSpot(-15, -20, 8);
+    const shop = WorldObjects.createHouse(textures, { w: 10, h: 6, d: 9, type: 'shop' });
+    shop.position.set(shopSpot.x, shopSpot.y, shopSpot.z);
+    shop.rotation.y = Math.PI / 4;
+    scene.add(shop);
+
+    const fisherSpot = Terrain.findBuildingSpot(50, 5, 8);
+    const fisherHut = WorldObjects.createHouse(textures, { w: 7, h: 5, d: 6, type: 'fisher' });
+    fisherHut.position.set(fisherSpot.x, fisherSpot.y, fisherSpot.z);
+    fisherHut.rotation.y = Math.PI;
+    scene.add(fisherHut);
+
+    const house1Spot = Terrain.findBuildingSpot(20, 25, 6);
+    const h1 = WorldObjects.createHouse(textures, { w: 7, h: 5, d: 6, type: 'house' });
+    h1.position.set(house1Spot.x, house1Spot.y, house1Spot.z);
+    h1.rotation.y = -Math.PI / 3;
+    scene.add(h1);
+
+    const house2Spot = Terrain.findBuildingSpot(-25, -28, 6);
+    const h2 = WorldObjects.createHouse(textures, { w: 7, h: 5, d: 6, type: 'house' });
+    h2.position.set(house2Spot.x, house2Spot.y, house2Spot.z);
+    h2.rotation.y = Math.PI / 3;
+    scene.add(h2);
+
+    const signSpot = Terrain.findBuildingSpot(0, -45, 3);
+    const sign = WorldObjects.createSign(textures);
+    sign.position.set(signSpot.x, signSpot.y, signSpot.z);
+    sign.rotation.y = 0;
+    scene.add(sign);
+
+    const farmSpot = Terrain.findBuildingSpot(35, -5, 15);
+    const farm = WorldObjects.createFarm(textures);
+    farm.position.set(farmSpot.x, farmSpot.y, farmSpot.z);
+    scene.add(farm);
+
+    // ===== 村庄周围的树 =====
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 70 + Math.random() * 50;
+      const tx = Math.cos(angle) * r;
+      const tz = Math.sin(angle) * r;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const scale = 0.8 + Math.random() * 0.5;
+      const tree = WorldObjects.createTree(textures, 'broadleaf', scale);
+      tree.position.set(tx, ty, tz);
+      tree.rotation.y = Math.random() * Math.PI * 2;
+      scene.add(tree);
+    }
+
+    // ===== 幽暗古林 =====
+    for (let i = 0; i < 100; i++) {
+      const tx = -half * 0.5 - Math.random() * half * 0.35;
+      const tz = (Math.random() - 0.5) * half * 0.7;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const scale = 0.9 + Math.random() * 0.6;
+      const tree = WorldObjects.createTree(textures, 'broadleaf', scale);
+      tree.position.set(tx, ty, tz);
+      tree.rotation.y = Math.random() * Math.PI * 2;
+      scene.add(tree);
+    }
+
+    // ===== 寒渊雪原：松树 =====
+    for (let i = 0; i < 70; i++) {
+      const tx = (Math.random() - 0.5) * half * 0.7;
+      const tz = -half * 0.5 - Math.random() * half * 0.35;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const scale = 0.8 + Math.random() * 0.7;
+      const tree = WorldObjects.createTree(textures, 'pine', scale);
+      tree.position.set(tx, ty, tz);
+      scene.add(tree);
+    }
+
+    // ===== 赤沙雅丹：仙人掌 + 石柱 =====
+    for (let i = 0; i < 50; i++) {
+      const tx = half * 0.5 + Math.random() * half * 0.35;
+      const tz = (Math.random() - 0.5) * half * 0.6;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const scale = 0.7 + Math.random() * 0.6;
+      const cactus = WorldObjects.createTree(textures, 'cactus', scale);
+      cactus.position.set(tx, ty, tz);
+      scene.add(cactus);
+    }
+    for (let i = 0; i < 20; i++) {
+      const tx = half * 0.55 + Math.random() * half * 0.3;
+      const tz = (Math.random() - 0.5) * half * 0.5;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const pillar = WorldObjects.createRockPillar(textures, 0.7 + Math.random() * 0.8);
+      pillar.position.set(tx, ty, tz);
+      scene.add(pillar);
+    }
+
+    // ===== 熔岩裂谷：枯树 + 岩浆池 =====
+    for (let i = 0; i < 20; i++) {
+      const tx = (Math.random() - 0.5) * half * 0.5;
+      const tz = half * 0.5 + Math.random() * half * 0.3;
+      const ty = Terrain.getHeight(tx, tz);
+      if (ty < Terrain.WATER_LEVEL + 2) continue;
+      const scale = 0.6 + Math.random() * 0.4;
+      const tree = WorldObjects.createTree(textures, 'dead', scale);
+      tree.position.set(tx, ty, tz);
+      scene.add(tree);
+    }
+    for (let i = 0; i < 5; i++) {
+      const tx = (Math.random() - 0.5) * half * 0.4;
+      const tz = half * 0.55 + Math.random() * half * 0.2;
+      const ty = Terrain.getHeight(tx, tz);
+      const lava = WorldObjects.createLavaPool(5 + Math.random() * 5);
+      lava.position.set(tx, ty + 0.1, tz);
+      scene.add(lava);
+    }
+
+    // ===== 草原花草 =====
+    scatterGrassAndFlowers();
+
+    // ===== 统一注册所有障碍物碰撞 =====
+    registerAllColliders();
+  }
+
+  function scatterGrassAndFlowers() {
+    const group = new THREE.Group();
+    group.userData.type = 'foliage';
+
+    function makeGrassTexture() {
+      const sz = 64;
+      const c = document.createElement('canvas');
+      c.width = c.height = sz;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, sz, sz);
+      for (let i = 0; i < 8; i++) {
+        const x = 8 + (i / 7) * (sz - 16);
+        const h = 20 + Math.random() * 30;
+        const hue = 90 + Math.random() * 30;
+        const light = 25 + Math.random() * 15;
+        ctx.strokeStyle = `hsl(${hue}, 50%, ${light}%)`;
+        ctx.lineWidth = 2 + Math.random();
+        ctx.beginPath();
+        ctx.moveTo(x, sz);
+        ctx.quadraticCurveTo(x + (Math.random()-0.5)*6, sz - h/2, x + (Math.random()-0.5)*4, sz - h);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function makeFlowerTexture(color) {
+      const sz = 32;
+      const c = document.createElement('canvas');
+      c.width = c.height = sz;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, sz, sz);
+      ctx.strokeStyle = '#3a6a2a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sz/2, sz);
+      ctx.lineTo(sz/2, sz*0.4);
+      ctx.stroke();
+      const colors = color || ['#fff0a0', '#ffaa88', '#ff88aa', '#cc88ff'];
+      const petalColor = colors[Math.floor(Math.random() * colors.length)];
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        const px = sz/2 + Math.cos(angle) * 5;
+        const py = sz*0.35 + Math.sin(angle) * 5;
+        const grad = ctx.createRadialGradient(px, py, 0, px, py, 4);
+        grad.addColorStop(0, petalColor);
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#ffee55';
+      ctx.beginPath();
+      ctx.arc(sz/2, sz*0.35, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const grassTex = makeGrassTexture();
+    const flowerTex1 = makeFlowerTexture(['#fff0a0', '#ffd888']);
+    const flowerTex2 = makeFlowerTexture(['#ff88aa', '#ff6699']);
+    const flowerTex3 = makeFlowerTexture(['#cc88ff', '#aa77ee']);
+
+    const grassCount = 300;
+    const half = Terrain.WORLD_SIZE / 2 - 100;
+    for (let i = 0; i < grassCount; i++) {
+      const rx = (Math.random() - 0.5) * half * 0.9;
+      const rz = (Math.random() - 0.5) * half * 0.9;
+      const distCenter = Math.sqrt(rx*rx + rz*rz);
+      if (distCenter < 60) continue;
+      const hy = Terrain.getHeight(rx, rz);
+      if (hy < Terrain.WATER_LEVEL + 2) continue;
+      const bw = Terrain.biomeWeights(rx, rz);
+      if (bw.DESERT > 0.4 || bw.LAVA > 0.3 || bw.SNOW > 0.5) continue;
+
+      const scale = 0.8 + Math.random() * 0.8;
+      const geo = new THREE.PlaneGeometry(1.2 * scale, 1.0 * scale);
+      const mat = new THREE.MeshStandardMaterial({
+        map: grassTex,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        roughness: 1,
+      });
+      const grass = new THREE.Mesh(geo, mat);
+      grass.position.set(rx, hy + 0.5 * scale, rz);
+      grass.rotation.y = Math.random() * Math.PI;
+      group.add(grass);
+    }
+
+    const flowerCount = 80;
+    for (let i = 0; i < flowerCount; i++) {
+      const rx = (Math.random() - 0.5) * half * 0.7;
+      const rz = (Math.random() - 0.5) * half * 0.7;
+      const distCenter = Math.sqrt(rx*rx + rz*rz);
+      if (distCenter < 70) continue;
+      const hy = Terrain.getHeight(rx, rz);
+      if (hy < Terrain.WATER_LEVEL + 3) continue;
+      const bw = Terrain.biomeWeights(rx, rz);
+      if (bw.DESERT > 0.3 || bw.LAVA > 0.2 || bw.SNOW > 0.4) continue;
+
+      const fTex = [flowerTex1, flowerTex2, flowerTex3][Math.floor(Math.random() * 3)];
+      const scale = 0.6 + Math.random() * 0.5;
+      const geo = new THREE.PlaneGeometry(0.8 * scale, 1.2 * scale);
+      const mat = new THREE.MeshStandardMaterial({
+        map: fTex,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        roughness: 0.9,
+      });
+      const flower = new THREE.Mesh(geo, mat);
+      flower.position.set(rx, hy + 0.6 * scale, rz);
+      flower.rotation.y = Math.random() * Math.PI;
+      group.add(flower);
+    }
+
+    scene.add(group);
+    return group;
+  }
+
+  function registerAllColliders() {
+    scene.traverse((obj) => {
+      if (!obj.userData) return;
+
+      if (obj.userData.type === 'house' && obj.userData.wallColliders) {
+        const cosY = Math.cos(obj.rotation.y);
+        const sinY = Math.sin(obj.rotation.y);
+        const px = obj.position.x;
+        const pz = obj.position.z;
+
+        for (const wall of obj.userData.wallColliders) {
+          const wx = px + wall.lx * cosY - wall.lz * sinY;
+          const wz = pz + wall.lx * sinY + wall.lz * cosY;
+          const rotHW = Math.abs(wall.hw * cosY) + Math.abs(wall.hd * sinY);
+          const rotHD = Math.abs(wall.hw * sinY) + Math.abs(wall.hd * cosY);
+
+          CollisionSystem.addCollider(
+            wx - rotHW, wx + rotHW,
+            wz - rotHD, wz + rotHD,
+            'house_wall'
+          );
+        }
+      }
+
+      if (obj.userData.type === 'tree' && obj.userData.colliderRadius) {
+        CollisionSystem.addBox(
+          obj.position.x, obj.position.z,
+          obj.userData.colliderRadius,
+          obj.userData.colliderRadius,
+          'tree'
+        );
+      }
+      if (obj.userData.type === 'pillar') {
+        CollisionSystem.addBox(
+          obj.position.x, obj.position.z,
+          1.2, 1.2,
+          'rock_pillar'
+        );
+      }
+      if (obj.userData.type === 'signpost') {
+        CollisionSystem.addBox(
+          obj.position.x, obj.position.z,
+          0.5, 0.5,
+          'signpost'
+        );
+      }
+    });
+  }
+
+  function setupEventListeners() {
+    window.addEventListener('resize', onResize);
+
+    window.addEventListener('keydown', (e) => {
+      PlayerController.onKeyDown(e);
+      if (e.code === 'KeyE') tryInteract();
+      if (e.code === 'KeyV') cycleCamera();
+      if (e.code === 'Escape') {
+        if (UISystem.isDialogOpen()) UISystem.advanceDialog();
+        if (UISystem.isForgePanelOpen()) UISystem.closeForge();
+        if (isBigMapOpen) toggleBigMap();
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      PlayerController.onKeyUp(e);
+    });
+
+    const canvas = renderer.domElement;
+    canvas.addEventListener('click', () => {
+      if (gameStarted && PlayerController.getControlMode() === 'pc'
+          && !UISystem.isDialogOpen() && !UISystem.isForgePanelOpen()
+          && !isBigMapOpen) {
+        canvas.requestPointerLock();
+      }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      PlayerController.setPointerLocked(document.pointerLockElement === canvas);
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (gameStarted && !isPaused) {
+        PlayerController.onMouseMove(e);
+      }
+    });
+    document.addEventListener('mousedown', (e) => {
+      if (gameStarted && !isPaused && !UISystem.isDialogOpen() && !UISystem.isForgePanelOpen()) {
+        if (document.pointerLockElement === canvas) {
+          PlayerController.onMouseDown(e);
+        }
+      }
+    });
+    document.addEventListener('mouseup', (e) => {
+      PlayerController.onMouseUp(e);
+    });
+
+    document.getElementById('btn-mode-pc').addEventListener('click', () => startGame('pc'));
+    document.getElementById('btn-mode-mobile').addEventListener('click', () => startGame('mobile'));
+    document.getElementById('btn-mode-gamepad').addEventListener('click', () => startGame('gamepad'));
+
+    document.getElementById('btn-cam-toggle').addEventListener('click', () => {
+      cycleCamera();
+    });
+
+    document.getElementById('forge-close').addEventListener('click', () => UISystem.closeForge());
+    document.getElementById('btn-upgrade-weapon').addEventListener('click', () => UISystem.upgradeWeapon());
+    document.getElementById('btn-upgrade-armor').addEventListener('click', () => UISystem.upgradeArmor());
+
+    document.getElementById('dialog-box').addEventListener('click', () => UISystem.advanceDialog());
+
+    document.getElementById('minimap-container').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleBigMap();
+    });
+    document.getElementById('bigmap-overlay').addEventListener('click', () => {
+      toggleBigMap();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && gameStarted) {
+        isPaused = true;
+      } else if (gameStarted) {
+        isPaused = false;
+        clock.getDelta();
+      }
+    });
+  }
+
+  function setupMobileControls() {
+    const joyArea = document.getElementById('joystick-area');
+    const joyStick = document.getElementById('joystick-stick');
+    let joyActive = false;
+    let joyId = null;
+    const joyCenter = { x: 70, y: 70 };
+    const joyRadius = 50;
+
+    function getTouchById(touches, id) {
+      for (let i = 0; i < touches.length; i++) {
+        if (touches[i].identifier === id) return touches[i];
+      }
+      return null;
+    }
+
+    joyArea.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      joyActive = true;
+      joyId = t.identifier;
+      updateJoystick(t);
+    }, { passive: false });
+
+    joyArea.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const t = getTouchById(e.changedTouches, joyId);
+      if (t) updateJoystick(t);
+    }, { passive: false });
+
+    function endJoy() {
+      joyActive = false;
+      joyId = null;
+      joyStick.style.left = '45px';
+      joyStick.style.top = '45px';
+      PlayerController.setMobileMove(0, 0);
+    }
+
+    joyArea.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyId) {
+          endJoy();
+          break;
+        }
+      }
+    }, { passive: false });
+    joyArea.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      endJoy();
+    }, { passive: false });
+
+    function updateJoystick(touch) {
+      const rect = joyArea.getBoundingClientRect();
+      let dx = touch.clientX - rect.left - joyCenter.x;
+      let dy = touch.clientY - rect.top - joyCenter.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > joyRadius) {
+        dx = dx / dist * joyRadius;
+        dy = dy / dist * joyRadius;
+      }
+      joyStick.style.left = (joyCenter.x + dx - 25) + 'px';
+      joyStick.style.top = (joyCenter.y + dy - 25) + 'px';
+      PlayerController.setMobileMove(dx / joyRadius, -dy / joyRadius);
+    }
+
+    const camArea = document.getElementById('mobile-cam-area');
+    let lastTouchX = 0, lastTouchY = 0;
+    let camTouchId = null;
+
+    camArea.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      camTouchId = t.identifier;
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+    }, { passive: false });
+
+    camArea.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const t = getTouchById(e.changedTouches, camTouchId);
+      if (t) {
+        const dx = t.clientX - lastTouchX;
+        const dy = t.clientY - lastTouchY;
+        PlayerController.addYawPitch(dx, dy);
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
+      }
+    }, { passive: false });
+
+    camArea.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === camTouchId) {
+          camTouchId = null;
+          break;
+        }
+      }
+    }, { passive: false });
+    camArea.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      camTouchId = null;
+    }, { passive: false });
+
+    const attackBtn = document.getElementById('btn-attack');
+    attackBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      PlayerController.tryAttack();
+      attackBtn.style.transform = 'scale(0.92)';
+    }, { passive: false });
+    attackBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      attackBtn.style.transform = '';
+    }, { passive: false });
+    attackBtn.addEventListener('click', () => {
+      PlayerController.tryAttack();
+    });
+
+    const interactBtn = document.getElementById('btn-interact');
+    interactBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      tryInteract();
+    }, { passive: false });
+    interactBtn.addEventListener('click', () => tryInteract());
+
+    const jumpBtn = document.getElementById('btn-jump');
+    jumpBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      PlayerController.tryJump();
+    }, { passive: false });
+    jumpBtn.addEventListener('click', () => PlayerController.tryJump());
+
+    const sprintBtn = document.getElementById('btn-sprint');
+    sprintBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      PlayerController.setSprinting(true);
+      sprintBtn.style.background = 'rgba(100,200,255,0.5)';
+    }, { passive: false });
+    sprintBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      PlayerController.setSprinting(false);
+      sprintBtn.style.background = '';
+    }, { passive: false });
+    sprintBtn.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      PlayerController.setSprinting(false);
+      sprintBtn.style.background = '';
+    }, { passive: false });
+
+    const camBtn = document.getElementById('cam-toggle-btn');
+    camBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cycleCamera();
+    }, { passive: false });
+    camBtn.addEventListener('click', () => cycleCamera());
+  }
+
+  function tryInteract() {
+    if (UISystem.isDialogOpen()) {
+      UISystem.advanceDialog();
+      return;
+    }
+    const npc = NPCSystem.getNearbyNPC();
+    if (npc) {
+      UISystem.startDialog(npc.userData.npcName, npc.userData.dialogs, () => {
+        if (npc.userData.role === 'smith') {
+          UISystem.openForge();
+        }
+        if (npc.userData.role === 'healer') {
+          const state = PlayerController.getState();
+          if (state.health < state.maxHealth) {
+            PlayerController.heal(50);
+            UISystem.showToast('阿苓为你治疗了伤口，恢复50点生命');
+          } else {
+            UISystem.showToast('你身体很健康，不需要治疗');
+          }
+        }
+      });
+    }
+  }
+
+  function cycleCamera() {
+    const mode = PlayerController.cycleCameraMode();
+    const modeNames = { third: '第三人称背面', first: '第一人称', front: '第三人称正面' };
+    UISystem.showToast('视角：' + modeNames[mode]);
+  }
+
+  let isBigMapOpen = false;
+  function toggleBigMap() {
+    isBigMapOpen = !isBigMapOpen;
+    const overlay = document.getElementById('bigmap-overlay');
+    if (isBigMapOpen) {
+      overlay.style.display = 'flex';
+      Minimap.renderBig(document.getElementById('bigmap-canvas'));
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    } else {
+      overlay.style.display = 'none';
+    }
+  }
+
+  function startGame(mode) {
+    gameStarted = true;
+    isPaused = false;
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    PlayerController.setControlMode(mode);
+
+    const mobileControls = document.getElementById('mobile-controls');
+    if (mode === 'mobile') {
+      mobileControls.style.display = 'block';
+    } else {
+      mobileControls.style.display = 'none';
+    }
+
+    const spawnY = Terrain.getHeight(0, 0);
+    playerMesh.position.set(0, spawnY + 1.5, -10);
+
+    clock.getDelta();
+
+    if (mode === 'pc') {
+      UISystem.showToast('点击画面锁定鼠标视角 · 按 ESC 解锁', 3500);
+    }
+  }
+
+  function onResize() {
+    if (!camera || !renderer) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  function updateEnemyHpBars() {
+    const enemies = [];
+    scene.traverse((c) => {
+      if (c.userData && c.userData.type === 'enemy' && c.userData.health > 0) {
+        enemies.push(c);
+      }
+    });
+
+    for (const [enemy, bar] of enemyHpBars.entries()) {
+      if (!enemies.includes(enemy) || enemy.userData.health <= 0) {
+        bar.remove();
+        enemyHpBars.delete(enemy);
+      }
+    }
+
+    for (const enemy of enemies) {
+      const dx = enemy.position.x - playerMesh.position.x;
+      const dz = enemy.position.z - playerMesh.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < 40) {
+        const screenPos = enemy.position.clone();
+        screenPos.y += enemy.userData.isBoss ? 5 : 2.5;
+        screenPos.project(camera);
+
+        if (screenPos.z < 1) {
+          let bar = enemyHpBars.get(enemy);
+          if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'enemy-hp-bar';
+            bar.style.display = 'block';
+            const names = { slime: '青沼史莱姆', wolf: '荒野狼', golem: '熔岩石巨人', ice_wraith: '寒渊冰灵' };
+            bar.innerHTML = `
+              <div class="hp-name">${names[enemy.userData.enemyType] || '敌人'}</div>
+              <div class="hp-bg"><div class="hp-fill"></div></div>
+            `;
+            document.getElementById('game-container').appendChild(bar);
+            enemyHpBars.set(enemy, bar);
+          }
+          const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+          const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+          bar.style.left = x + 'px';
+          bar.style.top = y + 'px';
+
+          const fill = bar.querySelector('.hp-fill');
+          const pct = (enemy.userData.health / enemy.userData.maxHealth * 100);
+          fill.style.width = pct + '%';
+        }
+      } else {
+        const bar = enemyHpBars.get(enemy);
+        if (bar) {
+          bar.remove();
+          enemyHpBars.delete(enemy);
+        }
+      }
+    }
+  }
+
+  function updateDropItems(dt, time) {
+    const drops = [];
+    scene.traverse((c) => {
+      if (c.userData && c.userData.type === 'dropItem') drops.push(c);
+    });
+    for (const drop of drops) {
+      drop.rotation.y += dt * 2;
+      const bob = Math.sin(time * 2 + drop.userData.bobOffset) * 0.2;
+      const groundY = Terrain.getHeight(drop.position.x, drop.position.z);
+      if (drop.position.y > groundY + 0.5) {
+        drop.position.y -= dt * 3;
+      } else {
+        drop.position.y = groundY + 1 + bob;
+      }
+    }
+  }
+
+  function animate() {
+    animFrameId = requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.1);
+    const time = clock.elapsedTime;
+
+    if (!isPaused && gameStarted) {
+      const uiPaused = UISystem.isDialogOpen() || UISystem.isForgePanelOpen() || isBigMapOpen;
+
+      if (!uiPaused) {
+        PlayerController.update(dt);
+        EnemyAI.update(dt);
+      }
+      NPCSystem.update(dt);
+
+      updateDropItems(dt, time);
+      Minimap.update();
+      UISystem.update(dt);
+      UISystem.updateHUD(PlayerController.getState());
+
+      const npc = NPCSystem.getNearbyNPC();
+      if (npc && !UISystem.isDialogOpen() && !UISystem.isForgePanelOpen()) {
+        const mode = PlayerController.getControlMode();
+        const key = mode === 'mobile' ? '互动按钮' : 'E';
+        UISystem.setInteractPrompt(`<span class="key">${key}</span>与${npc.userData.npcName}交谈`);
+      } else {
+        UISystem.setInteractPrompt(null);
+      }
+
+      updateEnemyHpBars();
+    }
+
+    if (waterMesh && waterMesh.userData.update) {
+      waterMesh.userData.update(dt);
+    }
+    if (terrainMesh && terrainMesh.userData.update) {
+      terrainMesh.userData.update(dt);
+    }
+    if (scene) {
+      scene.traverse((obj) => {
+        if (obj.userData && obj.userData.type === 'clouds' && obj.userData.update) {
+          obj.userData.update(dt);
+        }
+      });
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  return {
+    init,
+    startGame,
+    toggleBigMap,
+    cycleCamera,
+  };
+})();
+
+window.addEventListener('load', () => {
+  Game.init();
+});
+</script>
+
+</body>
+</html>
